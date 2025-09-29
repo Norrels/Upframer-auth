@@ -1,0 +1,103 @@
+name: Deploy to AWS ECR
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY || 'upframer-auth' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.2.21
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run tests
+        run: bun test
+        env:
+          JWT_SECRET: test-secret-key-that-is-at-least-32-characters-long
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          PORT: 3335
+          NODE_ENV: test
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    strategy:
+      matrix:
+        include:
+          - dockerfile: Dockerfile
+            tag-suffix: ""
+            image-name: "standard"
+          - dockerfile: Dockerfile.slim
+            tag-suffix: "-slim"
+            image-name: "slim"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Create ECR repository if it doesn't exist
+        run: |
+          aws ecr describe-repositories --repository-names $ECR_REPOSITORY 2>/dev/null || \
+          aws ecr create-repository \
+            --repository-name $ECR_REPOSITORY \
+            --region $AWS_REGION \
+            --image-scanning-configuration scanOnPush=true \
+            --encryption-configuration encryptionType=AES256
+
+      - name: Build, tag, and push Docker image (${{ matrix.image-name }})
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build Docker images
+          docker build -f ${{ matrix.dockerfile }} -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG${{ matrix.tag-suffix }} .
+          docker build -f ${{ matrix.dockerfile }} -t $ECR_REGISTRY/$ECR_REPOSITORY:latest${{ matrix.tag-suffix }} .
+
+          # Push images to ECR
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG${{ matrix.tag-suffix }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest${{ matrix.tag-suffix }}
+
+          # Output image URI for potential use in deployment
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG${{ matrix.tag-suffix }}" >> $GITHUB_OUTPUT
+          echo "🐳 Built and pushed ${{ matrix.image-name }} image: $ECR_REGISTRY/$ECR_REPOSITORY:latest${{ matrix.tag-suffix }}"
+
+      - name: Image scan results
+        run: |
+          aws ecr wait image-scan-complete \
+            --repository-name $ECR_REPOSITORY \
+            --image-id imageTag=${{ github.sha }}${{ matrix.tag-suffix }} || true
+
+          aws ecr describe-image-scan-findings \
+            --repository-name $ECR_REPOSITORY \
+            --image-id imageTag=${{ github.sha }}${{ matrix.tag-suffix }} || true
