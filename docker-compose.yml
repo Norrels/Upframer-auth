@@ -27,7 +27,7 @@ services:
       - "3335:3335"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/upframer_auth
-      JWT_SECRET: ${JWT_SECRET_KEY}
+      JWT_SECRET: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
       PORT: 3335
       NODE_ENV: production
     depends_on:
