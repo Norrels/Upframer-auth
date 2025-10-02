@@ -8,9 +8,10 @@
     "migrate:push": "drizzle-kit push --config=./src/config/drizzle.ts"
   },
   "dependencies": {
+    "@elysiajs/openapi": "^1.4.11",
     "bcryptjs": "^3.0.2",
     "drizzle-orm": "^0.44.5",
-    "elysia": "^0.8.9",
+    "elysia": "^1.4.9",
     "jsonwebtoken": "^9.0.2",
     "postgres": "^3.4.7",
     "zod": "^3.22.4"
