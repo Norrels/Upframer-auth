@@ -2,7 +2,7 @@
 
 API de autenticação construída com TypeScript, seguindo princípios de Clean Architecture e Domain-Driven Design (DDD).
 
-## 🏗️ Arquitetura
+## Arquitetura
 
 O projeto segue os princípios da **Clean Architecture** com uma estrutura bem definida em camadas:
 
@@ -46,7 +46,7 @@ src/
 - **Interface Segregation**: interfaces específicas e coesas
 - **Dependency Inversion**: dependências abstratas, não concretas
 
-## 🚀 Tecnologias
+## Tecnologias
 
 ### Core
 - **[Bun](https://bun.sh/)**: Runtime JavaScript/TypeScript ultra-rápido
@@ -71,7 +71,7 @@ src/
 - **[Docker](https://docker.com/)**: Containerização da aplicação
 - **Docker Compose**: Orquestração de serviços (app + postgres)
 
-## 📋 Funcionalidades
+## Funcionalidades
 
 ### Endpoints Disponíveis
 
@@ -82,7 +82,7 @@ src/
 - `POST /auth/register` - Registro de novos usuários
 - `POST /auth/login` - Login e geração de JWT
 
-## 🛠️ Comandos Disponíveis
+## Comandos Disponíveis
 
 ```bash
 # Desenvolvimento
@@ -96,7 +96,7 @@ bun run migrate:push     # Aplica mudanças no schema
 bun test                 # Executa testes com coverage
 ```
 
-## 📝 Configuração
+## Configuração
 
 ### Variáveis de Ambiente
 ```env
@@ -106,7 +106,7 @@ PORT=3335
 NODE_ENV=production
 ```
 
-## 📚 Estrutura de Camadas
+## Estrutura de Camadas
 
 ### Domain Layer
 ```typescript
